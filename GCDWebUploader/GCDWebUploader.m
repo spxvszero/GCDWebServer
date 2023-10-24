@@ -81,6 +81,7 @@ NS_ASSUME_NONNULL_END
     [self addGETHandlerForBasePath:@"/" directoryPath:(NSString*)[siteBundle resourcePath] indexFilename:nil cacheAge:3600 allowRangeRequests:NO];
 
     // Web page
+      __weak typeof(self) weakSelf = self;
     [self addHandlerForMethod:@"GET"
                          path:@"/"
                  requestClass:[GCDWebServerRequest class]
@@ -137,7 +138,8 @@ NS_ASSUME_NONNULL_END
                                                                      @"header" : header,
                                                                      @"prologue" : prologue,
                                                                      @"epilogue" : epilogue,
-                                                                     @"footer" : footer
+                                                                     @"footer" : footer,
+                                                                     @"dirDownload" : weakSelf.enableDirectoryDownload?@"\"true\"":@"\"false\""
                                                                    }];
                  }];
 
@@ -272,7 +274,15 @@ NS_ASSUME_NONNULL_END
   if (![[NSFileManager defaultManager] fileExistsAtPath:absolutePath isDirectory:&isDirectory]) {
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_NotFound message:@"\"%@\" does not exist", relativePath];
   }
-  if (isDirectory) {
+  if (isDirectory && _enableDirectoryDownload) {
+      if ([self.delegate respondsToSelector:@selector(webUploader:dealWithDirectoryDownload:)]) {
+          NSString *filePath = [self.delegate webUploader:self dealWithDirectoryDownload:absolutePath];
+          if (filePath != nil && [filePath isKindOfClass:[NSString class]] && [[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDirectory]) {
+              if (!isDirectory) {
+                  return [GCDWebServerFileResponse responseWithFile:filePath isAttachment:YES];
+              }
+          }
+      }
     return [GCDWebServerErrorResponse responseWithClientError:kGCDWebServerHTTPStatusCode_BadRequest message:@"\"%@\" is a directory", relativePath];
   }
 

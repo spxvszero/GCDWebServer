@@ -28,7 +28,72 @@
 import GCDWebServers
 import UIKit
 
+
+
 class ViewController: UIViewController {
+  @IBOutlet var label: UILabel?
+  var toggleButton : UIButton = {
+    let b = UIButton()
+    b.setTitle("Open Server", for: .normal)
+    b.setTitle("Stop Server", for: .selected)
+    b.setTitleColor(.blue, for: .normal)
+    return b
+  }()
+  
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    
+    self.view.addSubview(toggleButton)
+    self.toggleButton.sizeToFit()
+    self.toggleButton.bounds = self.toggleButton.bounds.insetBy(dx: -10, dy: -6)
+    toggleButton.addTarget(self, action: #selector(toggleServer), for: .touchUpInside)
+    
+    self.label?.text = "Click Button below to Start."
+  }
+  
+  override func viewWillLayoutSubviews() {
+    super.viewWillLayoutSubviews()
+    if let label = label {
+      self.toggleButton.center = CGPoint.init(x: label.center.x, y: label.center.y + 30)
+    }else {
+      self.toggleButton.center = self.view.center
+    }
+  }
+  
+  @objc func toggleServer() {
+      let serverManager = WebServerManager.manager
+      if serverManager.isRunning() {
+          serverManager.stopServer()
+      }else{
+          serverManager.startServer()
+      }
+    if #available(iOS 13.0, *) {
+      DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: .seconds(1)), execute: DispatchWorkItem(block: { [weak self] in
+        self?.updateServerBtnState()
+      }))
+    } else {
+      // Fallback on earlier versions
+      DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + DispatchTimeInterval.seconds(1), execute: DispatchWorkItem(block: { [weak self] in
+        self?.updateServerBtnState()
+      }))
+    }
+  }
+
+  func updateServerBtnState() {
+      let serverManager = WebServerManager.manager
+      if serverManager.isRunning() {
+          self.toggleButton.isSelected = true
+          if let addr = serverManager.runningAddress() {
+              self.label?.text = "Now you can access \(addr) to operate files."
+          }
+      }else {
+          self.toggleButton.isSelected = false
+      }
+  }
+}
+
+
+class ViewController_Origin: UIViewController {
   @IBOutlet var label: UILabel?
   var webServer: GCDWebUploader!
 
@@ -39,6 +104,7 @@ class ViewController: UIViewController {
     webServer = GCDWebUploader(uploadDirectory: documentsPath)
     webServer.delegate = self
     webServer.allowHiddenItems = true
+    webServer.enableDirectoryDownload = true
     if webServer.start() {
       label?.text = "GCDWebServer running locally on port \(webServer.port)"
     } else {
@@ -54,7 +120,7 @@ class ViewController: UIViewController {
   }
 }
 
-extension ViewController: GCDWebUploaderDelegate {
+extension ViewController_Origin: GCDWebUploaderDelegate {
   func webUploader(_: GCDWebUploader, didUploadFileAtPath path: String) {
     print("[UPLOAD] \(path)")
   }

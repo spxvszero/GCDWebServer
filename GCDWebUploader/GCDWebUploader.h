@@ -64,6 +64,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)webUploader:(GCDWebUploader*)uploader didCreateDirectoryAtPath:(NSString*)path;
 
+/**
+ *      This method is how to deal with dir.
+ */
+- (NSString *)webUploader:(GCDWebUploader*)uploader dealWithDirectoryDownload:(NSString *)path;
+
 @end
 
 /**
@@ -102,6 +107,9 @@ NS_ASSUME_NONNULL_BEGIN
  *  The default value is NO.
  */
 @property(nonatomic) BOOL allowHiddenItems;
+
+
+@property(nonatomic) BOOL enableDirectoryDownload;
 
 /**
  *  Sets the title for the uploader web interface.
